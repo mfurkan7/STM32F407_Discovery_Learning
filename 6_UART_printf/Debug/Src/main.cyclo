@@ -1,0 +1,6 @@
+main.c:21:5:__io_putchar	1
+main.c:26:5:main	2
+main.c:34:6:UART2_TX_Init	1
+main.c:65:6:UART2_write	2
+main.c:70:13:UART_set_baudrate	1
+main.c:73:17:compute_UART_baudrate	1

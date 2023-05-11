@@ -1,0 +1,72 @@
+#include "stm32f407xx.h"
+#include <stdint.h>
+
+/*PD5-> TX AF7*/
+#define GPIODEN 		(1U<<3)
+#define USART2EN		(1U<<17)
+#define CR1_TE			(1U<<3) //Enable TX
+#define CR1_UE			(1U<<13)//Enable USART
+#define SR_TXE			(1U<<7)
+
+#define SYS_FREQ		16000000 /*Crystal Frequency*/
+#define Baudrate 		115200
+
+static void set_usart_baudrate(USART_TypeDef *USARTx,uint32_t PeriphClk, uint32_t baudrate);
+static uint16_t calc_usart_baudrate(uint32_t PeriphClk, uint32_t baudrate);
+void usart_init(void);
+void usart_write(int ch);
+
+int main(void){
+	//USART Init function
+	usart_init();
+	while(1){
+		//USART write function
+		usart_write('F');
+	}
+}
+void usart_write(int ch){
+	while(!(USART2->SR & SR_TXE)){}
+	USART2->DR = (ch & 0xFF);
+}
+
+void usart_init(void){
+	//Enable the GPIO Clock
+	RCC->AHB1ENR |= GPIODEN;
+
+	//Set USART GPIO Mode
+	GPIOD->MODER &=~(1U<<10);
+	GPIOD->MODER |= (1U<<11);
+
+	//Set alternate function
+	GPIOD->AFR[0] |= (1U<<20) ;
+	GPIOD->AFR[0] |= (1U<<21) ;
+	GPIOD->AFR[0] |= (1U<<22) ;
+	GPIOD->AFR[0] &=~(1U<<23) ;
+
+	//Set USART Clock
+	RCC->APB1ENR |= USART2EN;
+
+	//Enable USART baud rate
+	set_usart_baudrate(USART2,SYS_FREQ,Baudrate);
+
+	//Clean all register and Enable TX
+	USART2->CR1 = CR1_TE;
+	//Enable USART
+	USART2->CR1 |= CR1_UE;
+
+	//Set word length
+	USART2->CR1 |=~(1U<<12);
+
+	//Configure Stop Bit
+	USART2->CR2 &=~(1U<<12);
+	USART2->CR2 |= (1U<<13);
+}
+
+
+static void set_usart_baudrate(USART_TypeDef *USARTx,uint32_t PeriphClk, uint32_t baudrate){
+	USARTx->BRR = calc_usart_baudrate(PeriphClk,baudrate);
+}
+
+static uint16_t calc_usart_baudrate(uint32_t PeriphClk, uint32_t baudrate){
+	return ((PeriphClk/(baudrate/2U))/baudrate);
+}
